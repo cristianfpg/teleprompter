@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<title>Teleprompter</title>
+<style>
+:root{color-scheme:dark;--bg:#101216;--panel:#191d24;--border:#303743;--accent:#3978e8}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#f4f5f7;font-family:Arial,Helvetica,sans-serif}
+body{min-height:100dvh;display:flex;flex-direction:column}button,input,textarea{font:inherit}
+button{border:1px solid #454b56;background:#252a33;color:#fff;padding:10px 14px;border-radius:9px;cursor:pointer;min-height:42px}
+button:hover{background:#343b47}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #79aaff;outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent)}button.primary:hover{background:#4b89f5}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);background:#14171d}
+.menu-button{width:44px;min-width:44px;padding:0;display:grid;place-items:center;font-size:23px;background:transparent}
+h1{margin:0;font-size:19px;font-weight:650}.header-spacer{flex:1}.header-actions{display:flex;gap:8px}
+main{width:100%;max-width:1500px;margin:0 auto;padding:18px 22px;flex:1;display:flex;flex-direction:column}
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:15px 17px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
+.control{display:flex;flex-direction:column;gap:9px;min-width:0}label{color:#d9dde5;font-size:13px}label strong{color:#fff;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:#6b9cff;cursor:pointer}
+.stage{position:relative;height:min(70vh,780px);min-height:360px;flex:1;overflow:hidden;background:#050608;border:1px solid var(--border);border-radius:12px}
+.viewport{position:absolute;inset:0;overflow:hidden;display:flex;justify-content:center}
+#textContent{width:800px;max-width:calc(100% - 36px);padding:48vh 0 55vh;color:#f7f7f7;font-size:42px;line-height:1.55;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;will-change:transform}
+.reading-line{position:absolute;z-index:2;left:0;right:0;top:32%;height:1px;background:rgba(255,255,255,.13);pointer-events:none}
+footer{display:flex;justify-content:space-between;gap:12px;padding:11px 2px 2px;color:#9da5b3;font-size:12px}#status{color:#dce5f5}
+.overlay{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.58);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.overlay.open{opacity:1;visibility:visible}.drawer{position:absolute;top:0;left:0;bottom:0;width:min(440px,92vw);background:#171b22;border-right:1px solid #343b47;padding:20px;display:flex;flex-direction:column;gap:14px;transform:translateX(-100%);transition:transform .22s ease}
+.overlay.open .drawer{transform:translateX(0)}.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.drawer h2{margin:0;font-size:18px}
+.drawer p{margin:0;color:#aeb7c5;font-size:13px;line-height:1.45}#scriptInput{flex:1;min-height:180px;width:100%;resize:vertical;padding:13px;color:#f5f7fa;background:#0e1116;border:1px solid #3a424f;border-radius:9px;line-height:1.5;font-size:15px}
+.drawer-actions{display:flex;gap:8px}.drawer-actions button{flex:1}.mobile-hint{display:none}
+@media(max-width:700px){
+ header{padding:9px 12px;gap:9px}h1{font-size:17px}.header-actions{gap:6px}.header-actions button{padding:8px 10px;min-height:40px;font-size:13px}
+ main{padding:10px;gap:10px}.controls{grid-template-columns:1fr;gap:11px;padding:12px 13px;margin:0}
+ .control{display:grid;grid-template-columns:minmax(125px,auto) 1fr;align-items:center;gap:10px}label{font-size:12px}input[type=range]{min-width:0}
+ .stage{min-height:0;height:auto;flex:1}#textContent{max-width:calc(100% - 28px);padding-top:42vh;padding-bottom:48vh;line-height:1.48}
+ .reading-line{top:31%}footer{font-size:11px;padding:2px 3px 4px}footer span:last-child{display:none}.mobile-hint{display:inline}
+}
+@media(max-width:390px){.header-actions button{padding:7px 8px;font-size:12px}h1{font-size:15px}.controls{gap:8px}.control{grid-template-columns:116px 1fr}}
+@media(max-height:520px) and (orientation:landscape){main{padding:8px 12px}.controls{grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 12px}.stage{min-height:180px}#textContent{padding-top:35vh;padding-bottom:40vh}}
+</style>
+</head>
+<body>
+<header>
+<button id="menuBtn" class="menu-button" aria-label="Abrir editor de texto" title="Editar texto">☰</button>
+<h1>Teleprompter</h1><div class="header-spacer"></div>
+<div class="header-actions"><button id="startBtn" class="primary">Iniciar</button><button id="resetBtn">Reiniciar</button></div>
+</header>
+<main>
+<section class="controls" aria-label="Controles del teleprompter">
+<div class="control"><label for="speed">Velocidad <strong id="speedValue">35</strong> px/s</label><input id="speed" type="range" min="10" max="180" value="35" step="5"></div>
+<div class="control"><label for="width">Anchura <strong id="widthValue">800</strong> px</label><input id="width" type="range" min="260" max="1400" value="800" step="20"></div>
+<div class="control"><label for="fontSize">Letra <strong id="fontSizeValue">42</strong> px</label><input id="fontSize" type="range" min="20" max="76" value="42" step="2"></div>
+</section>
+<section class="stage" aria-label="Área de lectura"><div class="reading-line"></div><div id="viewport" class="viewport"><article id="textContent">Abre el menú ☰ para pegar o escribir tu texto.</article></div></section>
+<footer><span id="status">Preparado</span><span>Espacio: iniciar / pausar · R: reiniciar · <span class="mobile-hint">Menú ☰ para editar el texto</span></span></footer>
+</main>
+<div id="editorOverlay" class="overlay" aria-hidden="true">
+<aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+<div class="drawer-heading"><h2 id="drawerTitle">Editar texto</h2><button id="closeMenuBtn" aria-label="Cerrar menú">✕</button></div>
+<p>Pega o escribe aquí el contenido que quieres leer. Se guardará automáticamente en este navegador.</p>
+<textarea id="scriptInput" placeholder="Escribe o pega tu discurso aquí..."></textarea>
+<div class="drawer-actions"><button id="clearTextBtn">Limpiar</button><button id="applyTextBtn" class="primary">Mostrar texto</button></div>
+</aside></div>
+<script>
+const textContent=document.getElementById("textContent"),viewport=document.getElementById("viewport");
+const startBtn=document.getElementById("startBtn"),resetBtn=document.getElementById("resetBtn");
+const menuBtn=document.getElementById("menuBtn"),closeMenuBtn=document.getElementById("closeMenuBtn");
+const editorOverlay=document.getElementById("editorOverlay"),scriptInput=document.getElementById("scriptInput");
+const applyTextBtn=document.getElementById("applyTextBtn"),clearTextBtn=document.getElementById("clearTextBtn");
+const speedInput=document.getElementById("speed"),widthInput=document.getElementById("width"),fontSizeInput=document.getElementById("fontSize");
+const statusLabel=document.getElementById("status");
+let running=false,offset=0,lastFrame=0,animationId=null;
+
+function openEditor(){pause();editorOverlay.classList.add("open");editorOverlay.setAttribute("aria-hidden","false");scriptInput.focus()}
+function closeEditor(){editorOverlay.classList.remove("open");editorOverlay.setAttribute("aria-hidden","true")}
+function applyText(){
+ const value=scriptInput.value.trim();
+ textContent.textContent=value||"No hay texto. Abre el menú ☰ para agregar tu discurso.";
+ try{localStorage.setItem("teleprompterText",scriptInput.value)}catch(e){}
+ reset();closeEditor();
+}
+function applySettings(){
+ textContent.style.width=widthInput.value+"px";textContent.style.fontSize=fontSizeInput.value+"px";
+ document.getElementById("speedValue").textContent=speedInput.value;
+ document.getElementById("widthValue").textContent=widthInput.value;
+ document.getElementById("fontSizeValue").textContent=fontSizeInput.value;
+}
+function animate(timestamp){
+ if(!running)return;if(!lastFrame)lastFrame=timestamp;
+ const delta=(timestamp-lastFrame)/1000;lastFrame=timestamp;
+ offset+=Number(speedInput.value)*delta;textContent.style.transform=`translateY(${-offset}px)`;
+ const endPoint=textContent.scrollHeight-viewport.clientHeight+viewport.clientHeight*.15;
+ if(offset>=endPoint){pause();statusLabel.textContent="Lectura finalizada";return}
+ animationId=requestAnimationFrame(animate);
+}
+function start(){if(running)return;running=true;lastFrame=0;startBtn.textContent="Pausar";statusLabel.textContent="Reproduciendo";animationId=requestAnimationFrame(animate)}
+function pause(){running=false;cancelAnimationFrame(animationId);startBtn.textContent="Continuar";if(statusLabel.textContent==="Reproduciendo")statusLabel.textContent="En pausa"}
+function reset(){pause();offset=0;textContent.style.transform="translateY(0)";startBtn.textContent="Iniciar";statusLabel.textContent="Preparado"}
+
+menuBtn.addEventListener("click",openEditor);closeMenuBtn.addEventListener("click",closeEditor);
+editorOverlay.addEventListener("click",e=>{if(e.target===editorOverlay)closeEditor()});
+applyTextBtn.addEventListener("click",applyText);
+clearTextBtn.addEventListener("click",()=>{scriptInput.value="";scriptInput.focus()});
+startBtn.addEventListener("click",()=>running?pause():start());resetBtn.addEventListener("click",reset);
+speedInput.addEventListener("input",applySettings);widthInput.addEventListener("input",applySettings);fontSizeInput.addEventListener("input",applySettings);
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&editorOverlay.classList.contains("open"))closeEditor();
+ if(e.code==="Space"&&!editorOverlay.classList.contains("open")&&!["INPUT","TEXTAREA","BUTTON"].includes(document.activeElement.tagName)){e.preventDefault();running?pause():start()}
+ if(e.key.toLowerCase()==="r"&&!editorOverlay.classList.contains("open"))reset();
+});
+try{const saved=localStorage.getItem("teleprompterText");if(saved){scriptInput.value=saved;textContent.textContent=saved}}catch(e){}
+applySettings();
+</script>
+</body>
+</html>
