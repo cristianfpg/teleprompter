@@ -98,6 +98,36 @@ function start(){if(running)return;running=true;lastFrame=0;startBtn.textContent
 function pause(){running=false;cancelAnimationFrame(animationId);startBtn.textContent="Continuar";if(statusLabel.textContent==="Reproduciendo")statusLabel.textContent="En pausa"}
 function reset(){pause();offset=0;textContent.style.transform="translateY(0)";startBtn.textContent="Iniciar";statusLabel.textContent="Preparado"}
 
+// Permite ajustar la posición manualmente sin detener el desplazamiento automático.
+function movePosition(amount){
+ const maxOffset=Math.max(0,textContent.scrollHeight-viewport.clientHeight+viewport.clientHeight*.15);
+ offset=Math.min(maxOffset,Math.max(0,offset+amount));
+ textContent.style.transform=`translateY(${-offset}px)`;
+ if(offset>=maxOffset && running){
+   pause();
+   statusLabel.textContent="Lectura finalizada";
+ }
+}
+
+const stage=document.querySelector(".stage");
+stage.addEventListener("wheel",e=>{
+ e.preventDefault();
+ movePosition(e.deltaY);
+},{passive:false});
+
+// En móviles, deslizar el dedo sobre el texto también cambia la posición.
+let touchY=null;
+stage.addEventListener("touchstart",e=>{
+ if(e.touches.length===1)touchY=e.touches[0].clientY;
+},{passive:true});
+stage.addEventListener("touchmove",e=>{
+ if(touchY===null||e.touches.length!==1)return;
+ const currentY=e.touches[0].clientY;
+ movePosition(touchY-currentY);
+ touchY=currentY;
+},{passive:true});
+stage.addEventListener("touchend",()=>{touchY=null},{passive:true});
+
 menuBtn.addEventListener("click",openEditor);closeMenuBtn.addEventListener("click",closeEditor);
 editorOverlay.addEventListener("click",e=>{if(e.target===editorOverlay)closeEditor()});
 applyTextBtn.addEventListener("click",applyText);
@@ -106,7 +136,13 @@ startBtn.addEventListener("click",()=>running?pause():start());resetBtn.addEvent
 speedInput.addEventListener("input",applySettings);widthInput.addEventListener("input",applySettings);fontSizeInput.addEventListener("input",applySettings);
 document.addEventListener("keydown",e=>{
  if(e.key==="Escape"&&editorOverlay.classList.contains("open"))closeEditor();
- if(e.code==="Space"&&!editorOverlay.classList.contains("open")&&!["INPUT","TEXTAREA","BUTTON"].includes(document.activeElement.tagName)){e.preventDefault();running?pause():start()}
+ if(!editorOverlay.classList.contains("open")&&!["INPUT","TEXTAREA","BUTTON"].includes(document.activeElement.tagName)){
+   if(e.code==="Space"){e.preventDefault();running?pause():start()}
+   if(e.key==="ArrowDown"){e.preventDefault();movePosition(60)}
+   if(e.key==="ArrowUp"){e.preventDefault();movePosition(-60)}
+   if(e.key==="PageDown"){e.preventDefault();movePosition(viewport.clientHeight*.75)}
+   if(e.key==="PageUp"){e.preventDefault();movePosition(-viewport.clientHeight*.75)}
+ }
  if(e.key.toLowerCase()==="r"&&!editorOverlay.classList.contains("open"))reset();
 });
 try{const saved=localStorage.getItem("teleprompterText");if(saved){scriptInput.value=saved;textContent.textContent=saved}}catch(e){}
