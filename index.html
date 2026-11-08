@@ -58,7 +58,7 @@ footer{display:flex;justify-content:space-between;gap:12px;padding:11px 2px 2px;
 <div id="editorOverlay" class="overlay" aria-hidden="true">
 <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
 <div class="drawer-heading"><h2 id="drawerTitle">Editar texto</h2><button id="closeMenuBtn" aria-label="Cerrar menú">✕</button></div>
-<p>Pega o escribe aquí el contenido que quieres leer. Se guardará automáticamente en este navegador.</p>
+<p>Pega o escribe aquí el contenido que quieres leer. Se guardará en este navegador al pulsar Mostrar texto.</p>
 <textarea id="scriptInput" placeholder="Escribe o pega tu discurso aquí..."></textarea>
 <div class="drawer-actions"><button id="clearTextBtn">Limpiar</button><button id="applyTextBtn" class="primary">Mostrar texto</button></div>
 </aside></div>
@@ -80,11 +80,21 @@ function applyText(){
  try{localStorage.setItem("teleprompterText",scriptInput.value)}catch(e){}
  reset();closeEditor();
 }
+function saveSettings(){
+ try{
+   localStorage.setItem("teleprompterSettings",JSON.stringify({
+     speed:speedInput.value,
+     width:widthInput.value,
+     fontSize:fontSizeInput.value
+   }));
+ }catch(e){}
+}
 function applySettings(){
  textContent.style.width=widthInput.value+"px";textContent.style.fontSize=fontSizeInput.value+"px";
  document.getElementById("speedValue").textContent=speedInput.value;
  document.getElementById("widthValue").textContent=widthInput.value;
  document.getElementById("fontSizeValue").textContent=fontSizeInput.value;
+ saveSettings();
 }
 function animate(timestamp){
  if(!running)return;if(!lastFrame)lastFrame=timestamp;
@@ -145,7 +155,17 @@ document.addEventListener("keydown",e=>{
  }
  if(e.key.toLowerCase()==="r"&&!editorOverlay.classList.contains("open"))reset();
 });
-try{const saved=localStorage.getItem("teleprompterText");if(saved){scriptInput.value=saved;textContent.textContent=saved}}catch(e){}
+try{
+ const savedText=localStorage.getItem("teleprompterText");
+ if(savedText!==null){scriptInput.value=savedText;textContent.textContent=savedText;}
+ const savedSettings=localStorage.getItem("teleprompterSettings");
+ if(savedSettings){
+   const settings=JSON.parse(savedSettings);
+   if(settings.speed!==undefined)speedInput.value=settings.speed;
+   if(settings.width!==undefined)widthInput.value=settings.width;
+   if(settings.fontSize!==undefined)fontSizeInput.value=settings.fontSize;
+ }
+}catch(e){}
 applySettings();
 </script>
 </body>
